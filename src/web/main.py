@@ -1,19 +1,6 @@
-"""Development entrypoint for running the FastAPI app with uvicorn.
+"""ASGI entrypoint for the DocQA FastAPI application.
 
-This module is optional; production should use an ASGI server pointing to
-`src.web:app` or `src.web.app:app`.
+Point your ASGI server to `src.web.main:app` or `src.web.app:app`.
 """
 
-import uvicorn
-
-from .app import app
-
-
-def run() -> None:
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
-
-
-if __name__ == "__main__":
-    run()
-
-
+from src.web.app import app  # noqa: F401

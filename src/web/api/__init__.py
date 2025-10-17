@@ -1,1 +1,1 @@
-from src.web.router import api_router  # noqa: F401
+from src.web.api.router import api_router  # noqa: F401
