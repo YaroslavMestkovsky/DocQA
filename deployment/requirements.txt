@@ -4,6 +4,7 @@ pyyaml
 fastapi
 uvicorn
 python-multipart
+loguru
 
 PyPDF2
 python-docx
