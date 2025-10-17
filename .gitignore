@@ -1,3 +1,4 @@
 .idea
 /ollama_data/
 /qdrant_data/
+/configs/
