@@ -52,8 +52,6 @@ services:
               - driver: nvidia
                 count: all
                 capabilities: [gpu]
-#      environment: todo проверить, нужно ли это
-#        - OLLAMA_HOST=0.0.0.0:11434
       networks:
         local_net:
           ipv4_address: 172.31.1.3

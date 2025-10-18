@@ -29,9 +29,16 @@ class BaseConfig:
             else:
                 setattr(root, node, value)
 
+    def as_dict(self):
+        return {attr: value for attr, value in self.__dict__.items()}
 
 class ConfigNode(BaseConfig):
     """Нода конфига, хранящая следующие ноды или значения в ней."""
 
 
 qdrant_config = BaseConfig("configs/qdrant.yaml")
+ollama_config = BaseConfig("configs/ollama.yaml")
+
+
+if __name__ == "__main__":
+    print(1)
