@@ -1,4 +1,4 @@
-from src.helpers.ollama_management import check_models
+from src.helpers.models_management import check_models
 from src.helpers.qdrant_management import check_collections
 
 
@@ -10,7 +10,6 @@ def create_health_report():
     """
 
     report = {}
-    all_good = True
 
     missing_qdrant_collections = check_collections()
     missing_ollama_models = check_models()
@@ -26,11 +25,5 @@ def create_health_report():
         report["ollama"] = "Missing models ❌"
     else:
         report["ollama"] = "OK ✅"
-
-
-    if report:
-        all_good = False
-
-    report["all_good"] = all_good
 
     return report

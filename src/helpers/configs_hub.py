@@ -38,7 +38,4 @@ class ConfigNode(BaseConfig):
 
 qdrant_config = BaseConfig("configs/qdrant.yaml")
 ollama_config = BaseConfig("configs/ollama.yaml")
-
-
-if __name__ == "__main__":
-    print(1)
+embedding_config = BaseConfig("configs/embedding.yaml")

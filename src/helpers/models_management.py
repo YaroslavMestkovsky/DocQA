@@ -2,16 +2,19 @@ import json
 import requests
 
 from typing import Dict
+from functools import lru_cache
+from sentence_transformers import SentenceTransformer
 
 from src.helpers.configs_hub import ollama_config
+from src.helpers.configs_hub import embedding_config
 
 
 def get_model_name(_model_info):
     return _model_info["name"].split(":")[0]
 
 
-def get_models() -> Dict:
-    """Получение списка загруженных моделей."""
+def get_ollama_models() -> Dict:
+    """Получение списка загруженных моделей ollama."""
 
     response = requests.get(ollama_config.ollama.models_list_url)
 
@@ -23,11 +26,11 @@ def get_models() -> Dict:
     return result
 
 
-def check_models():
-    """Проверка наличия моделей в соответствии с конфигом."""
+def check_ollama_models():
+    """Проверка наличия моделей ollama в соответствии с конфигом."""
 
     missing_models = []
-    existing_models = get_models()
+    existing_models = get_ollama_models()
     names = [get_model_name(model) for model in existing_models["models"]]
 
     for model_name in ollama_config.ollama.models.as_dict().values():
@@ -37,10 +40,10 @@ def check_models():
     return missing_models
 
 
-def pull_model(name):
+def pull_ollama_model(name):
     """Загрузка новой модели."""
 
-    models = get_models()
+    models = get_ollama_models()
 
     if name in [get_model_name(model) for model in models["models"]]:
         result = {"error": "Такая модель уже загружена."}
@@ -52,7 +55,7 @@ def pull_model(name):
         )
 
         if response.status_code == requests.codes.ok:
-            current_models = get_models()
+            current_models = get_ollama_models()
 
             try:
                 model_info = (model for model in current_models["models"] if name == get_model_name(model)).__next__()
@@ -63,3 +66,33 @@ def pull_model(name):
             result = {"error": f"Ошибка {response.status_code}: {response.text}"}
 
     return result
+
+
+@lru_cache(maxsize=1)
+def get_embedding_model() -> SentenceTransformer:
+    """Возвращает единственный экземпляр модели эмбеддингов (singleton)."""
+
+    model_name = embedding_config.embedding
+    model = SentenceTransformer(model_name)
+
+    return model
+
+
+def check_embedding_model():
+    """Проверяет наличие экземпляра модели эмбеддингов в кэше."""
+
+    cache_info = get_embedding_model.cache_info()
+
+    return {"embedding_model": "Ok" if cache_info.hits > 0 else "Not uploaded"}
+
+    # response = requests.get(ollama_config.ollama.models_list_url)
+    #
+    # if response.status_code == requests.codes.ok:
+    #     result = response.json()
+    # else:
+    #     result = {"error": f"Ошибка {response.status_code}: {response.text}"}
+    #
+    # return result
+
+if __name__ == "__main__":
+    check_embedding_model()
