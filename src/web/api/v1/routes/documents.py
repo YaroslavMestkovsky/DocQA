@@ -20,7 +20,7 @@ class DeleteResponse(BaseModel):
     deleted_ids: List[str]
 
 
-@router.post("/ingest", response_model=IngestResponse, summary="Ingest documents")
+@router.post("/ingest", response_model=IngestResponse, summary="Ingest documents (stub)")
 async def ingest_documents(
     files: List[UploadFile] = File(..., description="Files to ingest"),
 ) -> IngestResponse:
@@ -36,8 +36,6 @@ def list_documents(
     return {"items": [], "limit": limit, "offset": offset}
 
 
-@router.delete("/", response_model=DeleteResponse, summary="Delete documents by IDs")
+@router.delete("/", response_model=DeleteResponse, summary="Delete documents by IDs (stub)")
 def delete_documents(ids: List[str] = Query(..., description="IDs to delete")) -> DeleteResponse:
     return DeleteResponse(deleted_ids=ids)
-
-

@@ -1,12 +1,12 @@
 import uuid
+import PyPDF2
+
+from tqdm import tqdm
 from abc import abstractmethod
 from pathlib import Path
 from typing import List, Dict, Any, Optional
-
-import PyPDF2
 from qdrant_client.models import PointStruct
 from sentence_transformers import SentenceTransformer
-from tqdm import tqdm
 
 from src.logging.logger import logger
 from src.helpers.configs_hub import qdrant_config
@@ -109,10 +109,10 @@ class DocumentProcessor(BaseProcessor):
             logger.debug(f"Обработка документа: {path}")
             # Извлечение текста
             extractor = self.document_formats[suffix]
-            text = extractor(path)  # todo че тут подсвечивает то?
+            text = extractor(path)
 
             # Разбиение на чанки
-            chunks = self._chunk_text(text)  # todo че тут подсвечивает то?
+            chunks = self._chunk_text(text)
 
             with tqdm(total=len(chunks), desc="Создание эмбедингов") as pbar:
                 # Обработка каждого чанка

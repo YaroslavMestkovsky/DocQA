@@ -25,12 +25,10 @@ class QueryResponse(BaseModel):
     passages: List[Passage] = []
 
 
-@router.post("/", response_model=QueryResponse, summary="Query RAG pipeline")
+@router.post("/", response_model=QueryResponse, summary="Query RAG pipeline (stub)")
 def query_rag(request: QueryRequest) -> QueryResponse:
     # Placeholder implementation; integrate with processors/services later
     dummy_passages = [
         Passage(id="p1", text="Example passage text.", score=0.9, metadata={"source": "stub"})
     ]
     return QueryResponse(answer="This is a stub answer.", passages=dummy_passages)
-
-

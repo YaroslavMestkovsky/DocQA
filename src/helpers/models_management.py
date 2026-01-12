@@ -72,7 +72,7 @@ def pull_ollama_model(name):
 def get_embedding_model() -> SentenceTransformer:
     """Возвращает единственный экземпляр модели эмбеддингов (singleton)."""
 
-    model_name = embedding_config.embedding
+    model_name = embedding_config.models.embedding
     model = SentenceTransformer(model_name)
 
     return model
@@ -83,16 +83,8 @@ def check_embedding_model():
 
     cache_info = get_embedding_model.cache_info()
 
-    return {"embedding_model": "Ok" if cache_info.hits > 0 else "Not uploaded"}
+    return [] if cache_info.hits > 0 else [embedding_config.models.embedding]
 
-    # response = requests.get(ollama_config.ollama.models_list_url)
-    #
-    # if response.status_code == requests.codes.ok:
-    #     result = response.json()
-    # else:
-    #     result = {"error": f"Ошибка {response.status_code}: {response.text}"}
-    #
-    # return result
 
 if __name__ == "__main__":
-    check_embedding_model()
+    get_embedding_model()
