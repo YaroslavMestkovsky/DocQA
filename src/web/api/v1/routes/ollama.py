@@ -6,7 +6,7 @@ from src.helpers.models_management import (
 )
 
 
-router = APIRouter(prefix="/ollama")
+router = APIRouter()
 
 
 @router.get("/get_models_list", summary="Get all ollama models")

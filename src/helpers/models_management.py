@@ -94,7 +94,7 @@ def check_embedding_model():
     cache_info = get_embedding_model.cache_info()
     model_name = embedding_config.models.embedding
     
-    if cache_info.hits > 0:
+    if cache_info.misses > 0:
         return {model_name: "OK ✅"}
     else:
         return {model_name: "Missing ❌"}

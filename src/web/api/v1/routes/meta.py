@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 
-router = APIRouter(prefix="/meta")
+router = APIRouter()
 
 
 @router.get("/info", summary="Get API metadata")

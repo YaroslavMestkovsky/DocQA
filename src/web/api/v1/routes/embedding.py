@@ -4,7 +4,7 @@ from src.helpers.models_management import (
 )
 
 
-router = APIRouter(prefix="/ollama")
+router = APIRouter()
 
 
 @router.get("/check_models", summary="Check if all embedding models from config uploaded")
