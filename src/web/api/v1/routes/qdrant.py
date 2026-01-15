@@ -4,6 +4,11 @@ from src.helpers.qdrant_management import create_collections
 router = APIRouter(prefix="/qdrant")
 
 
-@router.get("/create_collections", summary="Check if collections exists and create if needed")
+@router.get("/check_collections", summary="Check if all collections from config exist")
+def check_collections() -> dict:
+    return {"collections_status": check_collections()}
+
+
+@router.get("/create_collections", summary="Create collections that are missing")
 def create_all() -> dict:
     return create_collections()

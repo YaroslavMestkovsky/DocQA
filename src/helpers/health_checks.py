@@ -8,24 +8,29 @@ def create_health_report():
     1. qdrant и его коллекции
     2. ollama и её модели
     3. модель эмбеддингов
+    
+    Returns:
+        Dict: Словарь с информацией о статусе каждого компонента.
     """
 
     report = {}
 
-    if missing_qdrant_collections := check_collections():
-        report["qdrant"] = f"Missing collections ❌: {missing_qdrant_collections}"
+    qdrant_status = check_collections()
+    if any(status == "Missing ❌" for status in qdrant_status.values()):
+        report["qdrant"] = {"status": "❌ Missing collections", "details": qdrant_status}
     else:
-        report["qdrant"] = "OK ✅"
+        report["qdrant"] = {"status": "✅ OK", "details": qdrant_status}
 
-
-    if missing_ollama_models := check_ollama_models():
-        report["ollama"] = f"Missing models ❌: {missing_ollama_models}"
+    ollama_status = check_ollama_models()
+    if any(status == "Missing ❌" for status in ollama_status.values()):
+        report["ollama"] = {"status": "❌ Missing models", "details": ollama_status}
     else:
-        report["ollama"] = "OK ✅"
+        report["ollama"] = {"status": "✅ OK", "details": ollama_status}
 
-    if missing_embedding_models := check_embedding_model():
-        report["embedding"] = f"Missing embedding model: {missing_embedding_models} ❌"
+    embedding_status = check_embedding_model()
+    if any(status == "Missing ❌" for status in embedding_status.values()):
+        report["embedding"] = {"status": "❌ Missing model", "details": embedding_status}
     else:
-        report["embedding"] = "OK ✅"
+        report["embedding"] = {"status": "✅ OK", "details": embedding_status}
 
     return report

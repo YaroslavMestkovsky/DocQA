@@ -39,3 +39,4 @@ class ConfigNode(BaseConfig):
 qdrant_config = BaseConfig("configs/qdrant.yaml")
 ollama_config = BaseConfig("configs/ollama.yaml")
 embedding_config = BaseConfig("configs/embedding.yaml")
+fastapi_config = BaseConfig("configs/fast_api.yaml")

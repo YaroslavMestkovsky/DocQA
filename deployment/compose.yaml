@@ -11,6 +11,7 @@ services:
     volumes:
       - ../src:/opt/src
       - ../configs:/opt/configs
+      - ../tests:/opt/tests
       - ./start.sh:/start.sh
     privileged: true
     networks:

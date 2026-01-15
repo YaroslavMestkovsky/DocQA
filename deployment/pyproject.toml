@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=42", "wheel", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "DocQA"
+version = "0.1.0"
+description = "RAG система для ответов на вопросы в тех. поддержку"
+authors = [{name = "Yaroslav Mestkovsky", email = "mestkovskyyaroslavd@mail.ru"}]
+readme = "README.md"
+requires-python = "==3.11.0"
+license = {text = "MIT"}
+
+dependencies = [
+    "requests>=2.25.1",
+    "qdrant-client>=1.7.0",
+    "pyyaml>=6.0",
+    "fastapi>=0.95.0",
+    "uvicorn>=0.22.0",
+    "python-multipart>=0.0.6",
+    "loguru>=0.7.0",
+    "PyPDF2>=3.0.0",
+    "python-docx>=0.8.11",
+    "python-pptx>=0.6.21",
+    "openpyxl>=3.1.0",
+    "beautifulsoup4>=4.12.0",
+    "lxml>=4.9.0",
+    "tqdm>=4.65.0",
+    "sentence-transformers>=2.2.2",
+    "pytest>=7.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black",
+    "isort",
+    "flake8",
+    "mypy",
+    "pytest-cov",
+]
+
+[tool.setuptools]
+py-modules = []
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

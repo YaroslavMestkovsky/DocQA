@@ -27,17 +27,23 @@ def get_ollama_models() -> Dict:
 
 
 def check_ollama_models():
-    """Проверка наличия моделей ollama в соответствии с конфигом."""
+    """Проверка наличия моделей ollama в соответствии с конфигом.
+    
+    Returns:
+        Dict: Словарь с информацией о статусе каждой модели.
+    """
 
-    missing_models = []
+    report = {}
     existing_models = get_ollama_models()
     names = [get_model_name(model) for model in existing_models["models"]]
 
     for model_name in ollama_config.ollama.models.as_dict().values():
-        if model_name not in names:
-            missing_models.append(model_name)
+        if model_name in names:
+            report[model_name] = "OK ✅"
+        else:
+            report[model_name] = "Missing ❌"
 
-    return missing_models
+    return report
 
 
 def pull_ollama_model(name):
@@ -79,11 +85,19 @@ def get_embedding_model() -> SentenceTransformer:
 
 
 def check_embedding_model():
-    """Проверяет наличие экземпляра модели эмбеддингов в кэше."""
+    """Проверяет наличие экземпляра модели эмбеддингов в кэше.
+    
+    Returns:
+        Dict: Словарь с информацией о статусе модели эмбеддингов.
+    """
 
     cache_info = get_embedding_model.cache_info()
-
-    return [] if cache_info.hits > 0 else [embedding_config.models.embedding]
+    model_name = embedding_config.models.embedding
+    
+    if cache_info.hits > 0:
+        return {model_name: "OK ✅"}
+    else:
+        return {model_name: "Missing ❌"}
 
 
 if __name__ == "__main__":

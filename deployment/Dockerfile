@@ -13,10 +13,10 @@ RUN useradd -rm -d /home/python-root -s /bin/bash -g root -G sudo -u ${USER_GID}
     echo 'python-root:python-root' | chpasswd
 
 # установка зависимостей
-COPY requirements.txt /opt/requirements.txt
+COPY pyproject.toml /opt/pyproject.toml
 RUN pip install --upgrade pip==25.2 && \
     pip install wheel && \
-    pip install -r /opt/requirements.txt
+    pip install -e /opt
 
 # Отладка
 #CMD ["tail", "-f", "/dev/null"]

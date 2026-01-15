@@ -16,7 +16,7 @@ def get_all() -> dict:
 
 @router.get("/check_models", summary="Check if all models from config uploaded")
 def check_models_exists() -> dict:
-    return {"missing_models": check_ollama_models()}
+    return {"models_status": check_ollama_models()}
 
 
 @router.post("/pull_model", summary="Pull ollama model by name")

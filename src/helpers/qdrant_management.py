@@ -5,21 +5,25 @@ from src.logging.logger import logger
 from src.helpers.configs_hub import qdrant_config
 
 
-def check_collections() -> List:
-    """Проверка наличия коллекций qdrant в соответствии с конфигом."""
+def check_collections() -> Dict:
+    """Проверка наличия коллекций qdrant в соответствии с конфигом.
+    
+    Returns:
+        Dict: Словарь с информацией о статусе каждой коллекции.
+    """
 
     existing_collections = [col.name for col in qdrant_manager.get_collections().collections]
-    collections_to_create = []
+    report = {}
 
     for collection_name in qdrant_config.qdrant.collections.__dict__.keys():
-        if collection_name not in existing_collections:
-            collections_to_create.append(collection_name)
+        if collection_name in existing_collections:
+            report[collection_name] = "OK ✅"
+            logger.info(f"Коллекция {collection_name} присутствует в qdrant.")
+        else:
+            report[collection_name] = "Missing ❌"
             logger.warning(f"Коллекция {collection_name} не найдена в qdrant.")
 
-    if not collections_to_create:
-        logger.info("Все коллекции присутствуют в qdrant.")
-
-    return collections_to_create
+    return report
 
 
 def create_collections() -> Dict:
