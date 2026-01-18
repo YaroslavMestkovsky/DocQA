@@ -1,5 +1,8 @@
 import uuid
-import PyPDF2
+import re
+import hashlib
+import time
+import pdfplumber
 
 from tqdm import tqdm
 from abc import abstractmethod
@@ -31,7 +34,7 @@ class BaseProcessor:
         """Отправка накопленного батча в Qdrant."""
 
         try:
-            qdrant_manager.upsert(
+            qdrant_manager.client.upsert(
                 collection_name=qdrant_config.defaults.default_collection,
                 points=self.buffer,
             )
@@ -101,6 +104,8 @@ class DocumentProcessor(BaseProcessor):
         }
 
         self.embedding_model: SentenceTransformer = get_embedding_model()
+        self.embedding_cache: Dict[str, List[float]] = {}
+        self.embedding_dimension = self.embedding_model.get_sentence_embedding_dimension()
 
     def process_file(self, suffix, path):
         """Обработка документа."""
@@ -113,17 +118,27 @@ class DocumentProcessor(BaseProcessor):
             extractor = self.document_formats[suffix]
             text = extractor(path)
 
-            # Разбиение на чанки
-            chunks = self._chunk_text(text)
+            # Разбиение на чанки с перекрытием
+            chunks = self._chunk_text(text, overlap=100)
+
+            # Фильтруем пустые чанки
+            non_empty_chunks = [chunk for chunk in chunks if chunk.strip()]
+
+            # Создаем эмбеддинги пакетом
+            embeddings = self._create_embeddings_batch(non_empty_chunks)
 
             with tqdm(total=len(chunks), desc="Создание эмбедингов") as pbar:
                 # Обработка каждого чанка
+                embedding_index = 0
+
                 for i, chunk in enumerate(chunks):
                     if not chunk.strip():
+                        pbar.update(1)
                         continue
 
-                    # Создание эмбеддинга
-                    embedding = self._create_embedding(chunk)
+                    # Получаем эмбеддинг из пакета
+                    embedding = embeddings[embedding_index]
+                    embedding_index += 1
 
                     # Создание точки для Qdrant
                     payload = {
@@ -149,23 +164,57 @@ class DocumentProcessor(BaseProcessor):
         except:
             return point_ids
 
-    def _chunk_text(self, text):
-        """Разбиение текста на чанки."""
-
-        words = text.split()
+    def _chunk_text(self, text, chunk_size=None, overlap=50):
+        """Разбиение текста на чанки с перекрытием."""
+        
+        if chunk_size is None:
+            chunk_size = qdrant_config.processing.chunk_size
+        
+        # Разбиваем текст на предложения
+        sentences = re.split(r'(?<=[.!?])\s+', text)
+        
         chunks = []
-
         current_chunk = []
         current_length = 0
+        
+        for sentence in sentences:
+            sentence_length = len(sentence)
+            
+            # Если предложение слишком большое, разбиваем его
+            if sentence_length > chunk_size:
+                # Разбиваем большое предложение на части
+                words = sentence.split()
 
-        for word in words:
-            if current_length + len(word) + 1 > qdrant_config.processing.chunk_size and current_chunk:
+                for word in words:
+                    if current_length + len(word) + 1 > chunk_size and current_chunk:
+                        chunks.append(" ".join(current_chunk))
+                        current_chunk = [word]
+                        current_length = len(word)
+                    else:
+                        current_chunk.append(word)
+                        current_length += len(word) + 1
+                
+                if current_chunk:
+                    chunks.append(" ".join(current_chunk))
+                    current_chunk = []
+                    current_length = 0
+            
+            # Обычная обработка предложения
+            elif current_length + sentence_length + 1 > chunk_size and current_chunk:
                 chunks.append(" ".join(current_chunk))
-                current_chunk = [word]
-                current_length = len(word)
+                # Добавляем перекрытие: берем последние overlap символов из предыдущего чанка
+
+                if overlap > 0 and len(chunks) > 0:
+                    last_chunk = chunks[-1]
+                    overlap_text = last_chunk[-overlap:] if len(last_chunk) > overlap else last_chunk
+                    current_chunk = [overlap_text, sentence]
+                    current_length = len(overlap_text) + len(sentence) + 1
+                else:
+                    current_chunk = [sentence]
+                    current_length = len(sentence)
             else:
-                current_chunk.append(word)
-                current_length += len(word) + 1
+                current_chunk.append(sentence)
+                current_length += len(sentence) + 1
 
         if current_chunk:
             chunks.append(" ".join(current_chunk))
@@ -173,36 +222,94 @@ class DocumentProcessor(BaseProcessor):
         return chunks
 
     def _create_embedding(self, text: str) -> List[float]:
-        """Создание эмбеддинга для текста."""
+        """Создание эмбеддинга для текста с кэшированием."""
 
         try:
             if not text.strip():
-                return [0.0] * 1024  # Пустой вектор
+                return [0.0] * self.embedding_dimension  # Пустой вектор
+
+            # Создаем хеш текста для кэширования
+            text_hash = hashlib.md5(text.encode('utf-8')).hexdigest()
+            
+            # Проверяем кэш
+            if text_hash in self.embedding_cache:
+                return self.embedding_cache[text_hash]
 
             embedding = self.embedding_model.encode(text, show_progress_bar=False)
-            return embedding.tolist()
+            embedding_list = embedding.tolist()
+            
+            # Сохраняем в кэш
+            self.embedding_cache[text_hash] = embedding_list
+            
+            return embedding_list
 
         except Exception as e:
             logger.error(f"Ошибка при создании эмбеддинга: {e}", exc_info=True)
-            return [0.0] * 1024
+            return [0.0] * self.embedding_dimension
+
+    def _create_embeddings_batch(self, texts: List[str]) -> List[List[float]]:
+        """Создание эмбеддингов для пакета текстов."""
+        
+        if not texts:
+            return []
+        
+        # Фильтруем пустые тексты
+        non_empty_texts = [text for text in texts if text.strip()]
+        
+        if not non_empty_texts:
+            return [[0.0] * self.embedding_dimension] * len(texts)
+        
+        try:
+            # Создаем эмбеддинги для пакета
+            embeddings = self.embedding_model.encode(non_empty_texts, show_progress_bar=False)
+            
+            # Преобразуем в список списков
+            embeddings_list = embeddings.tolist()
+            
+            # Добавляем пустые векторы для пустых текстов
+            result = []
+            text_index = 0
+            for text in texts:
+                if text.strip():
+                    result.append(embeddings_list[text_index])
+                    text_index += 1
+                else:
+                    result.append([0.0] * self.embedding_dimension)
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Ошибка при создании эмбеддингов для пакета: {e}", exc_info=True)
+            return [[0.0] * self.embedding_dimension] * len(texts)
+
+    def _normalize_text(self, text: str) -> str:
+        """Нормализация текста: удаление лишних пробелов, нормализация переносов и т.д."""
+        # Удаляем лишние пробелы и переносы строк
+        text = re.sub(r'\s+', ' ', text)
+        # Нормализуем переносы строк
+        text = text.replace('\r\n', '\n').replace('\r', '\n')
+        # Удаляем лишние пробелы в начале и конце
+        text = text.strip()
+
+        return text
 
     def _extract_pdf_text(self, path):
-        """Извлечение текста из PDF файла."""
+        """Извлечение текста из PDF файла с использованием pdfplumber."""
 
         result = ""
 
         try:
             text_parts = []
 
-            with open(path, 'rb') as file:
-                pdf_reader = PyPDF2.PdfReader(file)
-
-                for page_num, page in enumerate(pdf_reader.pages):
+            with pdfplumber.open(path) as pdf:
+                for page_num, page in enumerate(pdf.pages):
                     try:
                         page_text = page.extract_text()
 
-                        if page_text.strip():
-                            text_parts.append(page_text)
+                        if page_text and page_text.strip():
+                            # Нормализация текста
+                            normalized_text = self._normalize_text(page_text)
+                            text_parts.append(normalized_text)
 
                     except Exception as e:
                         logger.warning(f"Ошибка при извлечении текста со страницы {page_num + 1}: {e}")

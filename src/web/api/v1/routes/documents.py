@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from pathlib import Path
 import tempfile
 import uuid
@@ -19,6 +19,7 @@ class DocumentMetadata(BaseModel):
 
 class IngestResponse(BaseModel):
     document_ids: List[str]
+    performance: Optional[Dict[str, Any]] = None
 
 
 class DeleteResponse(BaseModel):
@@ -33,12 +34,19 @@ async def ingest_documents(
     
     indexer = IndexerService()
     document_ids = []
-
+    performance_stats = {
+        "total_files": 0,
+        "processed_files": 0,
+        "total_points": 0,
+    }
+    
     # Создаем временную директорию для сохранения файлов
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
         
         for upload_file in files:
+            performance_stats["total_files"] += 1
+            
             # Проверяем, что файл является PDF todo в будущем открыть другие типы
             if not upload_file.filename.lower().endswith('.pdf'):
                 continue
@@ -54,11 +62,16 @@ async def ingest_documents(
                 point_ids = indexer.index(file_path)
                 # Добавляем все ID точек для этого документа
                 document_ids.extend(point_ids)
+                performance_stats["processed_files"] += 1
+                performance_stats["total_points"] += len(point_ids)
             except Exception as e:
                 # Логируем ошибку и продолжаем обработку следующих файлов todo
                 continue
     
-    return IngestResponse(document_ids=document_ids)
+    return IngestResponse(
+        document_ids=document_ids,
+        performance=performance_stats,
+    )
 
 
 @router.get("/", summary="List documents (stub)")
