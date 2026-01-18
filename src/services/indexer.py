@@ -21,6 +21,8 @@ class IndexerService:
 
             else:
                 logger.error("Неизвестный формат документа.")
+                return []
 
         except Exception as e:
             logger.error(f"Ошибка при индексации файла {path}: {e}")
+            return []

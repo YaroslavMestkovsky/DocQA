@@ -105,6 +105,8 @@ class DocumentProcessor(BaseProcessor):
     def process_file(self, suffix, path):
         """Обработка документа."""
 
+        point_ids = []
+
         try:
             logger.debug(f"Обработка документа: {path}")
             # Извлечение текста
@@ -135,14 +137,17 @@ class DocumentProcessor(BaseProcessor):
                     }
 
                     point = self._create_point(embedding, payload)
+                    point_ids.append(point.id)
                     self._add_to_buffer(point)
                     pbar.update(1)
 
             self.finalize()
             logger.debug(f"Документ обработан: {path} ({len(chunks)} чанков)")
 
+            return point_ids
+
         except:
-            ...
+            return point_ids
 
     def _chunk_text(self, text):
         """Разбиение текста на чанки."""

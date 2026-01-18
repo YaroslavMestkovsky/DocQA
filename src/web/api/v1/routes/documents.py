@@ -1,7 +1,12 @@
 from typing import List, Optional
+from pathlib import Path
+import tempfile
+import uuid
 
 from fastapi import APIRouter, UploadFile, File, Query
 from pydantic import BaseModel
+
+from src.services.indexer import IndexerService
 
 
 router = APIRouter()
@@ -20,13 +25,40 @@ class DeleteResponse(BaseModel):
     deleted_ids: List[str]
 
 
-@router.post("/ingest", response_model=IngestResponse, summary="Ingest documents (stub)")
+@router.post("/ingest", response_model=IngestResponse, summary="Ingest documents")
 async def ingest_documents(
     files: List[UploadFile] = File(..., description="Files to ingest"),
 ) -> IngestResponse:
-    # Placeholder: return dummy IDs
-    ids = [f"doc_{i}" for i, _ in enumerate(files, start=1)]
-    return IngestResponse(document_ids=ids)
+    """Обработка загруженных документов и создание эмбеддингов."""
+    
+    indexer = IndexerService()
+    document_ids = []
+
+    # Создаем временную директорию для сохранения файлов
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+        
+        for upload_file in files:
+            # Проверяем, что файл является PDF todo в будущем открыть другие типы
+            if not upload_file.filename.lower().endswith('.pdf'):
+                continue
+            
+            # Сохраняем файл во временную директорию
+            file_path = temp_path / upload_file.filename
+            with open(file_path, "wb") as buffer:
+                content = await upload_file.read()
+                buffer.write(content)
+            
+            # Обрабатываем файл
+            try:
+                point_ids = indexer.index(file_path)
+                # Добавляем все ID точек для этого документа
+                document_ids.extend(point_ids)
+            except Exception as e:
+                # Логируем ошибку и продолжаем обработку следующих файлов todo
+                continue
+    
+    return IngestResponse(document_ids=document_ids)
 
 
 @router.get("/", summary="List documents (stub)")
