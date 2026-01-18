@@ -3,7 +3,7 @@ from src.helpers.models_management import (
     check_embedding_model,
     get_embedding_model,
 )
-from src.services.query_service import query_service
+from src.services.query import query_service
 from src.web.models.query_models import SearchResponseModel, SearchRequest
 
 router = APIRouter()
