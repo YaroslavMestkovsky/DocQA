@@ -3,6 +3,9 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
+from src.services.query import query_service
+from src.services.ollama import OllamaService
+
 
 router = APIRouter()
 
@@ -25,10 +28,35 @@ class QueryResponse(BaseModel):
     passages: List[Passage] = []
 
 
-@router.post("/", response_model=QueryResponse, summary="Query RAG pipeline (stub)")
+@router.post("/", response_model=QueryResponse, summary="Query RAG pipeline")
 def query_rag(request: QueryRequest) -> QueryResponse:
-    # Placeholder implementation; integrate with processors/services later
-    dummy_passages = [
-        Passage(id="p1", text="Example passage text.", score=0.9, metadata={"source": "stub"})
-    ]
-    return QueryResponse(answer="This is a stub answer.", passages=dummy_passages)
+    # Получение эмбеддингов с использованием query_service
+    response = query_service.search(
+        query=request.question,
+        limit=request.top_k,
+    )
+
+    # Формирование контекста из результатов поиска
+    context = "\n".join([result.texts for result in response.results if result.texts])
+
+    # Получение ответа от LLM-модели
+    llm_response = OllamaService.ask_model(query=request.question, context=context)
+
+    # Формирование списка пассажей
+    passages = []
+
+    for idx, result in enumerate(response.results):
+        if result.texts:
+            passages.append(
+                Passage(
+                    id=f"p{idx}",
+                    text=result.texts,
+                    score=result.score,
+                    metadata={"source": result.file_paths[0] if result.file_paths else "unknown"}
+                ),
+            )
+
+    return QueryResponse(
+        answer=llm_response.get("response", "No answer from LLM."),
+        passages=passages,
+    )
