@@ -6,6 +6,8 @@ import uuid
 from fastapi import APIRouter, UploadFile, File, Query
 from pydantic import BaseModel
 
+from src.managers.qdrant import qdrant_manager
+from src.helpers.configs_hub import qdrant_config
 from src.services.indexer import IndexerService
 
 
@@ -74,13 +76,45 @@ async def ingest_documents(
     )
 
 
-@router.get("/", summary="List documents (stub)")
+@router.get("/", summary="List documents")
 def list_documents(
     limit: int = Query(20, ge=1, le=100), offset: int = Query(0, ge=0)
 ) -> dict:
-    return {"items": [], "limit": limit, "offset": offset}
+    """Получение списка документов из Qdrant."""
+
+    collection_name = qdrant_config.defaults.default_collection
+
+    # Получаем все точки из коллекции
+    points = qdrant_manager.client.scroll(
+        collection_name=collection_name,
+        limit=limit,
+        offset=offset,
+        with_payload=True,
+        with_vectors=False,
+    )
+
+    # Формируем список документов
+    items = []
+
+    for point in points[0]:
+        items.append({
+            "id": point.id,
+            "payload": point.payload,
+        })
+
+    return {"items": items, "limit": limit, "offset": offset}
 
 
-@router.delete("/", response_model=DeleteResponse, summary="Delete documents by IDs (stub)")
+@router.delete("/", response_model=DeleteResponse, summary="Delete documents by IDs")
 def delete_documents(ids: List[str] = Query(..., description="IDs to delete")) -> DeleteResponse:
+    """Удаление документов из Qdrant по их ID."""
+
+    collection_name = qdrant_config.defaults.default_collection
+
+    # Удаляем точки из коллекции
+    qdrant_manager.client.delete(
+        collection_name=collection_name,
+        points_selector=ids,
+    )
+
     return DeleteResponse(deleted_ids=ids)
