@@ -115,7 +115,7 @@ pytest tests/
 
 ### Эмбеддинги
 - `GET /v1/embedding/check_models` — Проверка наличия моделей эмбеддингов
-- `POST /v1/embedding/pull_models` — Загрузка моделей эмбеддингов
+- `POST /v1/embedding/pull_model` — Загрузка моделей эмбеддингов
 
 ## Конфигурация
 

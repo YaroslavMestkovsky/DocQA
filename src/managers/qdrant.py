@@ -56,3 +56,4 @@ class QdrantManager:
 
 
 qdrant_manager = QdrantManager()
+

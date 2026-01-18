@@ -12,8 +12,13 @@ def check_models_exists() -> dict:
     return {"embedding_status": check_embedding_model()}
 
 
-@router.post("/pull_models", summary="Pull embedding model")
-def pull_models() -> dict:
+@router.post("/pull_model", summary="Pull embedding model")
+def pull_model() -> dict:
     get_embedding_model()
 
     return {"success": True}
+
+
+@router.post("/get_embeddings_from_qdrant")
+def get_embeddings_from_qdrant() -> dict:
+    ...
