@@ -3,6 +3,8 @@ import re
 import hashlib
 import time
 import pdfplumber
+import sys
+import os
 
 from tqdm import tqdm
 from abc import abstractmethod
@@ -107,7 +109,7 @@ class DocumentProcessor(BaseProcessor):
         self.embedding_cache: Dict[str, List[float]] = {}
         self.embedding_dimension = self.embedding_model.get_sentence_embedding_dimension()
 
-    def process_file(self, suffix, path):
+    def process_file(self, suffix, path, document_uuid: str = None):
         """Обработка документа."""
 
         point_ids = []
@@ -150,6 +152,10 @@ class DocumentProcessor(BaseProcessor):
                         "total_chunks": len(chunks),
                         "file_size": path.stat().st_size,
                     }
+
+                    # Добавляем UUID документа в payload, если он передан
+                    if document_uuid:
+                        payload["document_uuid"] = document_uuid
 
                     point = self._create_point(embedding, payload)
                     point_ids.append(point.id)
