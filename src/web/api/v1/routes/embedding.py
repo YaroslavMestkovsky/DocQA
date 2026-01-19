@@ -10,13 +10,13 @@ router = APIRouter()
 
 
 @router.get("/check_models", summary="Check if all embedding models from config uploaded")
-def check_models_exists() -> dict:
-    return {"embedding_status": check_embedding_model()}
+async def check_models_exists() -> dict:
+    return {"embedding_status": await check_embedding_model()}
 
 
 @router.post("/pull_model", summary="Pull embedding model")
-def pull_model() -> dict:
-    get_embedding_model()
+async def pull_model() -> dict:
+    await get_embedding_model()
 
     return {"success": True}
 

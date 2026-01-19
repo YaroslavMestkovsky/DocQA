@@ -5,10 +5,10 @@ router = APIRouter()
 
 
 @router.get("/check_collections", summary="Check if all collections from config exist")
-def check_collections() -> dict:
-    return {"collections_status": check_qdrant_collections()}
+async def check_collections() -> dict:
+    return {"collections_status": await check_qdrant_collections()}
 
 
 @router.get("/create_collections", summary="Create collections that are missing")
-def create_all() -> dict:
-    return create_collections()
+async def create_all() -> dict:
+    return await create_collections()

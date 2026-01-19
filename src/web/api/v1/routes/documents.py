@@ -66,7 +66,7 @@ async def ingest_documents(
             
             # Обрабатываем файл
             try:
-                point_ids = indexer.index(file_path, document_uuid)
+                point_ids = await indexer.index(file_path, document_uuid)
                 # Добавляем все ID точек для этого документа
                 document_ids.extend(point_ids)
                 performance_stats["processed_files"] += 1
@@ -83,7 +83,7 @@ async def ingest_documents(
 
 
 @router.get("/", summary="List documents")
-def list_documents(
+async def list_documents(
     limit: int = Query(20, ge=1, le=100), offset: int = Query(0, ge=0)
 ) -> dict:
     """Получение списка документов из Qdrant."""
@@ -118,7 +118,7 @@ def list_documents(
 
 
 @router.delete("/", response_model=DeleteResponse, summary="Delete documents by UUID")
-def delete_documents(document_uuid: str = Query(..., description="Document UUID to delete all related points")) -> DeleteResponse:
+async def delete_documents(document_uuid: str = Query(..., description="Document UUID to delete all related points")) -> DeleteResponse:
     """Удаление всех точек, связанных с конкретным документом по UUID."""
 
     from qdrant_client.models import Filter, FieldCondition, MatchValue

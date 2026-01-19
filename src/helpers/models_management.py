@@ -13,7 +13,7 @@ def get_model_name(_model_info):
     return _model_info["name"].split(":")[0]
 
 
-def get_ollama_models() -> Dict:
+async def get_ollama_models() -> Dict:
     """Получение списка загруженных моделей ollama."""
 
     response = requests.get(ollama_config.ollama.models_list_url)
@@ -26,7 +26,7 @@ def get_ollama_models() -> Dict:
     return result
 
 
-def check_ollama_models():
+async def check_ollama_models():
     """Проверка наличия моделей ollama в соответствии с конфигом.
     
     Returns:
@@ -34,7 +34,7 @@ def check_ollama_models():
     """
 
     report = {}
-    existing_models = get_ollama_models()
+    existing_models = await get_ollama_models()
     names = [get_model_name(model) for model in existing_models["models"]]
 
     for model_name in ollama_config.ollama.models.as_dict().values():
@@ -46,10 +46,10 @@ def check_ollama_models():
     return report
 
 
-def pull_ollama_model(name):
+async def pull_ollama_model(name):
     """Загрузка новой модели."""
 
-    models = get_ollama_models()
+    models = await get_ollama_models()
 
     if name in [get_model_name(model) for model in models["models"]]:
         result = {"error": "Такая модель уже загружена."}
@@ -61,7 +61,7 @@ def pull_ollama_model(name):
         )
 
         if response.status_code == requests.codes.ok:
-            current_models = get_ollama_models()
+            current_models = await get_ollama_models()
 
             try:
                 model_info = (model for model in current_models["models"] if name == get_model_name(model)).__next__()
@@ -75,7 +75,7 @@ def pull_ollama_model(name):
 
 
 @lru_cache(maxsize=1)
-def get_embedding_model() -> SentenceTransformer:
+async def get_embedding_model() -> SentenceTransformer:
     """Возвращает единственный экземпляр модели эмбеддингов (singleton)."""
 
     model_name = embedding_config.models.embedding
@@ -84,7 +84,7 @@ def get_embedding_model() -> SentenceTransformer:
     return model
 
 
-def check_embedding_model():
+async def check_embedding_model():
     """Проверяет наличие экземпляра модели эмбеддингов в кэше.
     
     Returns:

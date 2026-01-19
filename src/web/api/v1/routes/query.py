@@ -29,9 +29,9 @@ class QueryResponse(BaseModel):
 
 
 @router.post("/", response_model=QueryResponse, summary="Query RAG pipeline")
-def query_rag(request: QueryRequest) -> QueryResponse:
+async def query_rag(request: QueryRequest) -> QueryResponse:
     # Получение эмбеддингов с использованием query_service
-    response = query_service.search(
+    response = await query_service.search(
         query=request.question,
         limit=request.top_k,
     )
@@ -40,7 +40,7 @@ def query_rag(request: QueryRequest) -> QueryResponse:
     context = "\n".join([result.texts for result in response.results if result.texts])
 
     # Получение ответа от LLM-модели
-    llm_response = OllamaService.ask_model(query=request.question, context=context)
+    llm_response = await OllamaService.ask_model(query=request.question, context=context)
 
     # Формирование списка пассажей
     passages = []

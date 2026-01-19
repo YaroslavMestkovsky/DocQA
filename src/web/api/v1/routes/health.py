@@ -5,5 +5,5 @@ router = APIRouter()
 
 
 @router.get("/health", summary="Health check")
-def health_check() -> dict:
-    return create_health_report()
+async def health_check() -> dict:
+    return await create_health_report()

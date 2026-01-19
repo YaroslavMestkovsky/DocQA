@@ -5,7 +5,7 @@ from src.logging.logger import logger
 from src.helpers.configs_hub import qdrant_config
 
 
-def check_collections() -> Dict:
+async def check_collections() -> Dict:
     """Проверка наличия коллекций qdrant в соответствии с конфигом.
     
     Returns:
@@ -26,7 +26,7 @@ def check_collections() -> Dict:
     return report
 
 
-def create_collections() -> Dict:
+async def create_collections() -> Dict:
     """Создание коллекций, которых ещё нет в qdrant."""
 
     collections = qdrant_config.qdrant.collections

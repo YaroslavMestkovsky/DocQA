@@ -17,7 +17,7 @@ class QueryService:
         self.qdrant_manager = qdrant_manager
         self.embedding_model: SentenceTransformer = get_embedding_model()
 
-    def search(self, query: str, **kwargs) -> SearchResponse:
+    async def search(self, query: str, **kwargs) -> SearchResponse:
         """Поиск по базе знаний."""
 
         try:

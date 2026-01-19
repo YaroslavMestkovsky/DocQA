@@ -10,7 +10,7 @@ class IndexerService:
     def __init__(self):
         self.document_processor: DocumentProcessor = DocumentProcessor()
 
-    def index(self, path: Path, document_uuid: str = None):
+    async def index(self, path: Path, document_uuid: str = None):
         """Индексация файла."""
 
         try:
