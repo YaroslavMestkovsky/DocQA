@@ -29,10 +29,16 @@ def check_collections() -> Dict:
 def create_collections() -> Dict:
     """Создание коллекций, которых ещё нет в qdrant."""
 
-    collections_to_create = created_collections = check_collections()
+    collections = qdrant_config.qdrant.collections
+    created_collections = []
+    existing_collections = [collection.name for collection in qdrant_manager.get_collections().collections]
 
-    for collection_name in collections_to_create:
-        collection = getattr(qdrant_config.qdrant.collections, collection_name)
-        qdrant_manager.create_collection(collection.name, collection.vector_size)
+    for collection_name in collections.__dict__.keys():
+        if collection_name not in existing_collections:
+            qdrant_manager.create_collection(
+                collection_name,
+                getattr(collections, collection_name).vector_size,
+            )
+            created_collections.append(collection_name)
 
     return {"created_collections": created_collections}
