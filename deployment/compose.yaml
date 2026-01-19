@@ -31,7 +31,7 @@ services:
       - "6333:6333"  # HTTP API
       - "6334:6334"  # gRPC API
     volumes:
-      - ../qdrant_data:/qdrant/storage
+      - qdrant_data:/qdrant/storage
     environment:
       QDRANT__SERVICE__HTTP_PORT: 6333
       QDRANT__SERVICE__GRPC_PORT: 6334
@@ -64,3 +64,7 @@ networks:
     ipam:
       config:
         - subnet: 172.31.0.0/16
+
+# Volume для хранения данных Qdrant.
+volumes:
+  qdrant_data:
