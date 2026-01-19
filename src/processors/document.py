@@ -126,21 +126,15 @@ class DocumentProcessor(BaseProcessor):
             # Фильтруем пустые чанки
             non_empty_chunks = [chunk for chunk in chunks if chunk.strip()]
 
-            # Создаем эмбеддинги пакетом
-            embeddings = self._create_embeddings_batch(non_empty_chunks)
-
             with tqdm(total=len(chunks), desc="Создание эмбедингов") as pbar:
                 # Обработка каждого чанка
-                embedding_index = 0
-
                 for i, chunk in enumerate(chunks):
                     if not chunk.strip():
                         pbar.update(1)
                         continue
 
-                    # Получаем эмбеддинг из пакета
-                    embedding = embeddings[embedding_index]
-                    embedding_index += 1
+                    # Создаем эмбеддинг для текущего чанка
+                    embedding = self._create_embedding(chunk)
 
                     # Создание точки для Qdrant
                     payload = {

@@ -75,7 +75,7 @@ async def pull_ollama_model(name):
 
 
 @lru_cache(maxsize=1)
-async def get_embedding_model() -> SentenceTransformer:
+def get_embedding_model() -> SentenceTransformer:
     """Возвращает единственный экземпляр модели эмбеддингов (singleton)."""
 
     model_name = embedding_config.models.embedding
@@ -98,7 +98,3 @@ async def check_embedding_model():
         return {model_name: "OK ✅"}
     else:
         return {model_name: "Missing ❌"}
-
-
-if __name__ == "__main__":
-    get_embedding_model()
