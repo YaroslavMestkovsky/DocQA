@@ -1,7 +1,9 @@
-from typing import List, Optional, Dict, Any
-from pathlib import Path
 import tempfile
 import uuid
+
+from typing import List, Optional, Dict, Any
+from pathlib import Path
+from chonkie import TokenChunker, OverlapRefinery
 
 from fastapi import APIRouter, UploadFile, File, Query
 from pydantic import BaseModel
@@ -61,20 +63,22 @@ async def ingest_documents(
                 content = await upload_file.read()
                 buffer.write(content)
             
-            # Генерируем уникальный идентификатор для документа
+            # Генерируем уникальный идентификатор для документа.
             document_uuid = str(uuid.uuid4())
             
-            # Обрабатываем файл
-            try:
-                point_ids = await indexer.index(file_path, document_uuid)
-                # Добавляем все ID точек для этого документа
-                document_ids.extend(point_ids)
-                performance_stats["processed_files"] += 1
-                performance_stats["total_points"] += len(point_ids)
-            except Exception as e:
-                # Логируем ошибку и продолжаем обработку следующих файлов todo
-                continue
-    
+            # Обрабатываем файл - ручной чанкинг
+            # try:
+            #     point_ids = await indexer.index(file_path, document_uuid)
+            #     # Добавляем все ID точек для этого документа
+            #     document_ids.extend(point_ids)
+            #     performance_stats["processed_files"] += 1
+            #     performance_stats["total_points"] += len(point_ids)
+            # except Exception as e:
+            #     # Логируем ошибку и продолжаем обработку следующих файлов todo
+            #     continue
+
+            # Обрабатываем файл - чанкинг с помощью chonkie.
+            ...
     return IngestResponse(
         document_ids=document_ids,
         document_uuid=document_uuid,

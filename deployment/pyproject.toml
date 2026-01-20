@@ -21,6 +21,7 @@ dependencies = [
     "python-multipart>=0.0.6",
     "loguru>=0.7.0",
     "PyPDF2>=3.0.0",
+    "pdf2image>=1.17.0",
     "pdfplumber>=0.10.2",
     "python-docx>=0.8.11",
     "python-pptx>=0.6.21",
@@ -30,6 +31,9 @@ dependencies = [
     "tqdm>=4.65.0",
     "sentence-transformers>=2.2.2",
     "pytest>=7.0.0",
+    "chonkie>=1.5.2",
+    "chonkie[qdrant]",
+    "pytesseract"
 ]
 
 [project.optional-dependencies]
@@ -39,6 +43,7 @@ dev = [
     "flake8",
     "mypy",
     "pytest-cov",
+    "chonkie[viz]"
 ]
 
 [tool.setuptools]

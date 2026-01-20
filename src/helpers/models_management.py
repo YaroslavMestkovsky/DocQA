@@ -80,6 +80,7 @@ def get_embedding_model() -> SentenceTransformer:
 
     model_name = embedding_config.models.embedding
     model = SentenceTransformer(model_name)
+    model.save('/opt/models/multilingual-e5-large')
 
     return model
 
