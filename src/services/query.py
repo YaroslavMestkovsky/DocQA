@@ -26,7 +26,7 @@ class QueryService:
 
             # Параметры поиска
             limit = kwargs.get('limit', querier_config.querier.processing.top_k)
-            score_threshold = kwargs.get('score_threshold', 0.0)
+            score_threshold = kwargs.get('score_threshold', 0.7)
             file_types = kwargs.get('file_types')
             metadata_filter = kwargs.get('metadata_filter')
 

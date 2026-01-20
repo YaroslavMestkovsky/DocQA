@@ -4,7 +4,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 from src.services.query import query_service
-from src.services.ollama import OllamaService
+from src.services.ollama import ollama_service
 
 
 router = APIRouter()
@@ -40,7 +40,10 @@ async def query_rag(request: QueryRequest) -> QueryResponse:
     context = "\n".join([result.texts for result in response.results if result.texts])
 
     # Получение ответа от LLM-модели
-    llm_response = await OllamaService.ask_model(query=request.question, context=context)
+    llm_response = await ollama_service.ask_model(
+        query=request.question,
+        context=context,
+    )
 
     # Формирование списка пассажей
     passages = []
