@@ -5,6 +5,7 @@ from typing import Dict
 from functools import lru_cache
 from sentence_transformers import SentenceTransformer
 
+from src.logging.logger import logger
 from src.helpers.configs_hub import ollama_config
 from src.helpers.configs_hub import embedding_config
 
@@ -61,13 +62,33 @@ async def pull_ollama_model(name):
         )
 
         if response.status_code == requests.codes.ok:
-            current_models = await get_ollama_models()
+            dlmtr = 10000000
 
-            try:
-                model_info = (model for model in current_models["models"] if name == get_model_name(model)).__next__()
-                result = {"uploaded_model": model_info}
-            except StopIteration:
-                result = {"error": "Произошла непредвиденная ошибка."}
+            # Обработка потокового ответа для отслеживания прогресса загрузки
+            for line in response.iter_lines():
+                if line:
+                    decoded_line = json.loads(line.decode('utf-8'))
+                    print(
+                        f"\r{decoded_line.get('completed', 'x') / dlmtr}/{decoded_line.get('total', 'x') / dlmtr}",
+                        end="",
+                        flush=True,
+                    )
+
+                    if decoded_line["status"] == "success":
+                        # Модель успешно загружена
+                        print()
+                        current_models = await get_ollama_models()
+
+                        try:
+                            model_info = next(model for model in current_models["models"] if name == get_model_name(model))
+                            result = {"uploaded_model": model_info}
+                        except StopIteration:
+                            result = {"error": "Произошла непредвиденная ошибка."}
+                        break
+            else:
+                # Если цикл завершился без успеха
+                print()  # Переход на новую строку
+                result = {"error": "Модель не была загружена."}
         else:
             result = {"error": f"Ошибка {response.status_code}: {response.text}"}
 
