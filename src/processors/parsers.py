@@ -19,97 +19,111 @@ class PDFParser:
         self.pdfFileObj = open(path, 'rb')
         # Объект считывателя PDF
         self.pdfReaded = PyPDF2.PdfReader(self.pdfFileObj)
+        # Объект pdfplumber для повторного использования
+        self.pdfplumber_obj = pdfplumber.open(path)
 
         # Cловарь для извлечения текста из каждого изображения
         self.text_per_page = {}
 
     def parse(self):
-        for page_num, page in enumerate(extract_pages(self.path)):
-            print(f"\rОбработка: {page_num}", end="", flush=True)
+        """Парсинг файла."""
 
-            # Инициализируем переменные, необходимые для извлечения текста со страницы
-            pageObj = self.pdfReaded.pages[page_num]
-            page_text = []
-            line_format = []
-            text_from_images = []
-            text_from_tables = []
-            page_content = []
-            # Инициализируем количество исследованных таблиц
-            table_num = 0
-            first_element = True
-            table_extraction_flag = False
-            # Открываем файл pdf
-            pdf = pdfplumber.open(self.path)
-            # Находим исследуемую страницу
-            page_tables = pdf.pages[page_num]
-            # Находим количество таблиц на странице
-            tables = page_tables.find_tables()
+        try:
+            for page_num, page in enumerate(extract_pages(self.path)):
+                print(f"\rОбработка: {page_num}", end="", flush=True)
 
-            # Находим все элементы
-            page_elements = [(element.y1, element) for element in page._objs]
-            # Сортируем все элементы по порядку нахождения на странице
-            page_elements.sort(key=lambda a: a[0], reverse=True)
+                # Инициализируем переменные, необходимые для извлечения текста со страницы
+                pageObj = self.pdfReaded.pages[page_num]
+                page_text = []
+                line_format = []
+                text_from_images = []
+                text_from_tables = []
+                page_content = []
+                # Инициализируем количество исследованных таблиц
+                table_num = 0
+                first_element = True
+                table_extraction_flag = False
+                page_tables = self.pdfplumber_obj.pages[page_num]
+                # Находим количество таблиц на странице
+                tables = page_tables.find_tables()
 
-            # Находим элементы, составляющие страницу
-            for i, component in enumerate(page_elements):
-                # Извлекаем положение верхнего края элемента в PDF
-                pos = component[0]
-                # Извлекаем элемент структуры страницы
-                element = component[1]
+                # Находим все элементы
+                page_elements = [(element.y1, element) for element in page._objs]
+                # Сортируем все элементы по порядку нахождения на странице
+                page_elements.sort(key=lambda a: a[0], reverse=True)
 
-                # Проверяем, является ли элемент текстовым
-                if isinstance(element, LTTextContainer):
-                    # Проверяем, находится ли текст в таблице
-                    if table_extraction_flag == False:
-                        # Используем функцию извлечения текста и формата для каждого текстового элемента
-                        line_text, format_per_line = self.text_extraction(element)
-                        # Добавляем текст каждой строки к тексту страницы
-                        page_text.append(line_text)
-                        # Добавляем формат каждой строки, содержащей текст
-                        line_format.append(format_per_line)
-                        page_content.append(line_text)
-                    else:
-                        # Пропускаем текст, находящийся в таблице
-                        pass
+                # Находим элементы, составляющие страницу
+                for i, component in enumerate(page_elements):
+                    # Извлекаем положение верхнего края элемента в PDF
+                    pos = component[0]
+                    # Извлекаем элемент структуры страницы
+                    element = component[1]
 
-                # Проверяем элементы на наличие изображений
-                if isinstance(element, LTFigure):
-                    # Вырезаем изображение из PDF
-                    cropped_pdf_path = self.crop_image(element, pageObj)
-                    # Преобразуем обрезанный pdf в изображение
-                    image_path = self.convert_to_images(cropped_pdf_path)
-                    # Извлекаем текст из изображения
-                    image_text = self.image_to_text(image_path)
-                    text_from_images.append(image_text)
-                    page_content.append(image_text)
-                    # Добавляем условное обозначение в списки текста и формата
-                    page_text.append('image')
-                    line_format.append('image')
-                    # Удаляем временные файлы
-                    os.remove(cropped_pdf_path)
-                    os.remove(image_path)
+                    # Проверяем, является ли элемент текстовым
+                    if isinstance(element, LTTextContainer):
+                        # Проверяем, находится ли текст в таблице
+                        if table_extraction_flag == False:
+                            # Используем функцию извлечения текста и формата для каждого текстового элемента
+                            line_text, format_per_line = self.text_extraction(element)
+                            # Добавляем текст каждой строки к тексту страницы
+                            page_text.append(line_text)
+                            # Добавляем формат каждой строки, содержащей текст
+                            line_format.append(format_per_line)
+                            page_content.append(line_text)
+                        else:
+                            # Пропускаем текст, находящийся в таблице
+                            pass
 
-                # Проверяем элементы на наличие таблиц
-                if isinstance(element, LTRect):
-                    # Если первый прямоугольный элемент
-                    if first_element == True and (table_num + 1) <= len(tables):
-                        # Находим ограничивающий прямоугольник таблицы
-                        lower_side = page.bbox[3] - tables[table_num].bbox[3]
-                        upper_side = element.y1
-                        # Извлекаем информацию из таблицы
-                        table = self.extract_table(self.path, page_num, table_num)
-                        # Преобразуем информацию таблицы в формат структурированной строки
-                        table_string = self.table_converter(table)
-                        # Добавляем строку таблицы в список
-                        text_from_tables.append(table_string)
-                        page_content.append(table_string)
-                        # Устанавливаем флаг True, чтобы избежать повторения содержимого
-                        table_extraction_flag = True
-                        # Преобразуем в другой элемент
-                        first_element = False
-                        # Добавляем условное обозначение в списки текста и формата
-                        page_text.append('table')
-                        line_format.append('table')
+                    # Проверяем элементы на наличие изображений
+                    if isinstance(element, LTFigure):
+                        try:
+                            # Вырезаем изображение из PDF
+                            cropped_pdf_path = self.crop_image(element, pageObj)
+                            # Преобразуем обрезанный pdf в изображение
+                            image_path = self.convert_to_images(cropped_pdf_path)
+                            # Извлекаем текст из изображения
+                            image_text = self.image_to_text(image_path)
+                            text_from_images.append(image_text)
+                            page_content.append(image_text)
+                            # Добавляем условное обозначение в списки текста и формата
+                            page_text.append('image')
+                            line_format.append('image')
+                        finally:
+                            # Удаляем временные файлы
+                            if 'cropped_pdf_path' in locals() and os.path.exists(cropped_pdf_path):
+                                os.remove(cropped_pdf_path)
+                            if 'image_path' in locals() and os.path.exists(image_path):
+                                os.remove(image_path)
+
+                    # Проверяем элементы на наличие таблиц
+                    if isinstance(element, LTRect):
+                        # Если первый прямоугольный элемент
+                        if first_element == True and (table_num + 1) <= len(tables):
+                            # Находим ограничивающий прямоугольник таблицы
+                            lower_side = page.bbox[3] - tables[table_num].bbox[3]
+                            upper_side = element.y1
+                            # Извлекаем информацию из таблицы
+                            table = self.extract_table(page_num, table_num)
+                            # Преобразуем информацию таблицы в формат структурированной строки
+                            table_string = self.table_converter(table)
+                            # Добавляем строку таблицы в список
+                            text_from_tables.append(table_string)
+                            page_content.append(table_string)
+                            # Устанавливаем флаг True, чтобы избежать повторения содержимого
+                            table_extraction_flag = True
+                            # Преобразуем в другой элемент
+                            first_element = False
+                            # Добавляем условное обозначение в списки текста и формата
+                            page_text.append('table')
+                            line_format.append('table')
+
+                        # Проверяем, извлекли ли мы уже таблицы из этой страницы
+                        if element.y0 >= lower_side and element.y1 <= upper_side:
+                            pass
+                        elif i + 1 < len(page_elements) and not isinstance(page_elements[i + 1][1], LTRect):
+                            table_extraction_flag = False
+                            first_element = True
+                            table_num += 1
 
                     # Проверяем, извлекли ли мы уже таблицы из этой страницы
                     if element.y0 >= lower_side and element.y1 <= upper_side:
@@ -119,21 +133,17 @@ class PDFParser:
                         first_element = True
                         table_num += 1
 
-                # Проверяем, извлекли ли мы уже таблицы из этой страницы
-                if element.y0 >= lower_side and element.y1 <= upper_side:
-                    pass
-                elif i + 1 < len(page_elements) and not isinstance(page_elements[i + 1][1], LTRect):
-                    table_extraction_flag = False
-                    first_element = True
-                    table_num += 1
+                # Создаём ключ для словаря
+                dctkey = 'Page_' + str(page_num)
+                # Добавляем список списков как значение ключа страницы
+                self.text_per_page[dctkey] = [page_text, line_format, text_from_images, text_from_tables, page_content]
 
-            # Создаём ключ для словаря
-            dctkey = 'Page_' + str(page_num)
-            # Добавляем список списков как значение ключа страницы
-            self.text_per_page[dctkey] = [page_text, line_format, text_from_images, text_from_tables, page_content]
-
-        print()
-        self.pdfFileObj.close()
+        except Exception as e:
+            print(f"Ошибка при обработке страницы {page_num}: {e}")
+        finally:
+            print()
+            self.pdfFileObj.close()
+            self.pdfplumber_obj.close()
 
         return ''.join([''.join(self.text_per_page[f'Page_{i}'][4]) for i in range(len(self.text_per_page))])
 
@@ -204,13 +214,11 @@ class PDFParser:
 
         return text
 
-    def extract_table(self, _pdf_path, page_num, table_num):
+    def extract_table(self, page_num, table_num):
         """Извлечение таблиц."""
 
-        # Открываем файл pdf
-        pdf = pdfplumber.open(_pdf_path)
-        # Находим исследуемую страницу
-        table_page = pdf.pages[page_num]
+        # Используем уже открытый объект pdfplumber
+        table_page = self.pdfplumber_obj.pages[page_num]
         # Извлекаем соответствующую таблицу
         table = table_page.extract_tables()[table_num]
 
