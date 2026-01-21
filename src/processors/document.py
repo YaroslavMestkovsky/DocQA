@@ -17,6 +17,7 @@ from src.logging.logger import logger
 from src.helpers.configs_hub import qdrant_config
 from src.managers.qdrant import qdrant_manager
 from src.helpers.models_management import get_embedding_model
+from src.processors.parsers import PDFParser
 
 
 class BaseProcessor:
@@ -296,35 +297,11 @@ class DocumentProcessor(BaseProcessor):
     def _extract_pdf_text(self, path):
         """Извлечение текста из PDF файла с использованием pdfplumber."""
 
-        result = ""
+        parser = PDFParser(path)
+        text = parser.parse()
 
-        try:
-            text_parts = []
+        return self._normalize_text(text)
 
-            with pdfplumber.open(path) as pdf:
-                for page_num, page in enumerate(pdf.pages):
-                    try:
-                        page_text = page.extract_text()
-
-                        if page_text and page_text.strip():
-                            # Нормализация текста
-                            normalized_text = self._normalize_text(page_text)
-                            text_parts.append(normalized_text)
-
-                    except Exception as e:
-                        logger.warning(f"Ошибка при извлечении текста со страницы {page_num + 1}: {e}")
-                        continue
-
-            text = "\n".join(text_parts)
-            logger.debug(f"Извлечено {len(text)} символов из PDF: {path}")
-
-            result = text
-
-        except Exception as e:
-            logger.error(f"Ошибка при извлечении текста из PDF {path}: {e}", exc_info=True)
-
-        return result
-        
     def _extract_docx_text(self, path):
         ...
 

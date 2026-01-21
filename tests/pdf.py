@@ -12,6 +12,8 @@ from pdf2image import convert_from_path
 import pytesseract
 # Для удаления дополнительно созданных файлов
 import os
+# Для работы с временными файлами
+import tempfile
 
 
 def text_extraction(_element):
@@ -46,23 +48,26 @@ def crop_image(_element, page_obj):
     # Сохраняем обрезанную страницу в новый PDF
     cropped_pdf_writer = PyPDF2.PdfWriter()
     cropped_pdf_writer.add_page(page_obj)
-    # Сохраняем обрезанный PDF в новый файл
-    with open('cropped_image.pdf', 'wb') as cropped_pdf_file:
+    # Создаем временный файл для обрезанного PDF
+    with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as cropped_pdf_file:
         cropped_pdf_writer.write(cropped_pdf_file)
+        return cropped_pdf_file.name
 
 
 def convert_to_images(input_file,):
     images = convert_from_path(input_file)
     image = images[0]
-    output_file = "PDF_image.png"
-    image.save(output_file, "PNG")
+    # Создаем временный файл для изображения
+    with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as output_file:
+        image.save(output_file, "PNG")
+        return output_file.name
 
 
 def image_to_text(image_path):
     # Считываем изображение
     img = Image.open(image_path)
     # Извлекаем текст из изображения
-    text = pytesseract.image_to_string(img)
+    text = pytesseract.image_to_string(img, lang='rus')
     return text
 
 
@@ -101,7 +106,7 @@ pdfReaded = PyPDF2.PdfReader(pdfFileObj)
 text_per_page = {}
 # Извлекаем страницы из PDF
 for pagenum, page in enumerate(extract_pages(pdf_path)):
-
+    print(f"\rОбработка: {pagenum}", end="", flush=True)
     # Инициализируем переменные, необходимые для извлечения текста со страницы
     pageObj = pdfReaded.pages[pagenum]
     page_text = []
@@ -150,16 +155,19 @@ for pagenum, page in enumerate(extract_pages(pdf_path)):
         # Проверяем элементы на наличие изображений
         if isinstance(element, LTFigure):
             # Вырезаем изображение из PDF
-            crop_image(element, pageObj)
+            cropped_pdf_path = crop_image(element, pageObj)
             # Преобразуем обрезанный pdf в изображение
-            convert_to_images('cropped_image.pdf')
+            image_path = convert_to_images(cropped_pdf_path)
             # Извлекаем текст из изображения
-            image_text = image_to_text('PDF_image.png')
+            image_text = image_to_text(image_path)
             text_from_images.append(image_text)
             page_content.append(image_text)
             # Добавляем условное обозначение в списки текста и формата
             page_text.append('image')
             line_format.append('image')
+            # Удаляем временные файлы
+            os.remove(cropped_pdf_path)
+            os.remove(image_path)
 
         # Проверяем элементы на наличие таблиц
         if isinstance(element, LTRect):
@@ -186,7 +194,7 @@ for pagenum, page in enumerate(extract_pages(pdf_path)):
             # Проверяем, извлекли ли мы уже таблицы из этой страницы
             if element.y0 >= lower_side and element.y1 <= upper_side:
                 pass
-            elif not isinstance(page_elements[i + 1][1], LTRect):
+            elif i + 1 < len(page_elements) and not isinstance(page_elements[i + 1][1], LTRect):
                 table_extraction_flag = False
                 first_element = True
                 table_num += 1
@@ -196,13 +204,11 @@ for pagenum, page in enumerate(extract_pages(pdf_path)):
     # Добавляем список списков как значение ключа страницы
     text_per_page[dctkey] = [page_text, line_format, text_from_images, text_from_tables, page_content]
 
+print()
+
 # Закрываем объект файла pdf
 pdfFileObj.close()
 
-# Удаляем созданные дополнительные файлы
-os.remove('cropped_image.pdf')
-os.remove('PDF_image.png')
-
 # Удаляем содержимое страницы
-result = ''.join(text_per_page['Page_0'][4])
+result = ''.join([''.join(text_per_page[f'Page_{i}'][4]) for i in range(len(text_per_page))])
 print(result)

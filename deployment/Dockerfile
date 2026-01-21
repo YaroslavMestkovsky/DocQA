@@ -9,12 +9,13 @@ RUN apt update && apt upgrade -y && apt-get update
 RUN apt-get install -y openssh-server sudo
 RUN mkdir /var/run/sshd
 
-# установка тессеракта и необходимых языковых пакетов (русский + английский)
+# установка тессеракта, необходимых языковых пакетов (русский + английский) и дополнительных пакетов для обработки PDF.
 RUN apt-get install -y --no-install-recommends \
         tesseract-ocr \
         libtesseract-dev \
         tesseract-ocr-rus \
-        tesseract-ocr-eng && \
+        tesseract-ocr-eng \
+        poppler-utils && \
     rm -rf /var/lib/apt/lists/*
 
 RUN useradd -rm -d /home/python-root -s /bin/bash -g root -G sudo -u ${USER_GID} python-root && \
