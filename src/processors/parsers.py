@@ -33,6 +33,8 @@ class PDFParser:
                 print(f"\rОбработка: {page_num}", end="", flush=True)
 
                 # Инициализируем переменные, необходимые для извлечения текста со страницы
+                lower_side = None
+                upper_side = None
                 pageObj = self.pdfReaded.pages[page_num]
                 page_text = []
                 line_format = []
@@ -116,17 +118,17 @@ class PDFParser:
                             # Добавляем условное обозначение в списки текста и формата
                             page_text.append('table')
                             line_format.append('table')
-
+    
                         # Проверяем, извлекли ли мы уже таблицы из этой страницы
-                        if element.y0 >= lower_side and element.y1 <= upper_side:
+                        if lower_side and upper_side and element.y0 >= lower_side and element.y1 <= upper_side:
                             pass
                         elif i + 1 < len(page_elements) and not isinstance(page_elements[i + 1][1], LTRect):
                             table_extraction_flag = False
                             first_element = True
                             table_num += 1
-
+    
                     # Проверяем, извлекли ли мы уже таблицы из этой страницы
-                    if element.y0 >= lower_side and element.y1 <= upper_side:
+                    if lower_side and upper_side and element.y0 >= lower_side and element.y1 <= upper_side:
                         pass
                     elif i + 1 < len(page_elements) and not isinstance(page_elements[i + 1][1], LTRect):
                         table_extraction_flag = False
